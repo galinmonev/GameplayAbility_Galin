@@ -23,9 +23,32 @@ public:
 	AAuraPlayerController();
 	virtual void PlayerTick(float DeltaTime) override;
 
+	/*This below is taken for TopDown template Player Controller */
+	/** Time Threshold to know if it was a short press */
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	float ShortPressThreshold;
+	
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* SetDestinationClickAction;
+
+	
+	/* End of TopDown Template*/
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+
+	/*This below is taken for TopDown template Player Controller */
+	/** True if the controlled character should navigate to the mouse cursor. */
+	uint32 bMoveToMouseCursor : 1;
+
+	/** Input handlers for SetDestination action. */
+	void OnInputStarted();
+	void OnSetDestinationTriggered();
+	void OnSetDestinationReleased();
+	/* End of TopDown Template*/
 
 private:
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -40,4 +63,10 @@ private:
 	IEnemynterface* LastActor;
 	IEnemynterface* ThisActor;
 
+
+	/*This below is taken for TopDown template Player Controller */
+	FVector CachedDestination;
+	float FollowTime; // For how long it has been pressed
+	/* End of TopDown Template*/
+	
 };

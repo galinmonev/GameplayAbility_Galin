@@ -2,13 +2,23 @@
 
 
 #include "Player/AuraPlayerController.h"
+
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Interaction/Enemynterface.h"
+#include "InputActionValue.h"
+
 
 AAuraPlayerController::AAuraPlayerController()
 {
 	bReplicates = true;
+
+	/*This below is taken for TopDown template Player Controller */
+	CachedDestination = FVector::ZeroVector;
+	FollowTime = 0.f;
+	/* End of TopDown Template*/
+		
 }
 
 void AAuraPlayerController::PlayerTick(float DeltaTime)
@@ -84,6 +94,7 @@ void AAuraPlayerController::BeginPlay()
 	Super::BeginPlay();
 	check(AuraContext);
 
+	//Add input  mapping contenxt
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	check(Subsystem);
 	Subsystem->AddMappingContext(AuraContext, 0);
@@ -104,8 +115,60 @@ void AAuraPlayerController::SetupInputComponent()
 	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InputComponent);
 
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AAuraPlayerController::Move);
+
+	/*This below is taken for TopDown template Player Controller */
+	// Setup mouse input events
+	EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Started, this, &AAuraPlayerController::OnInputStarted);
+	EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Triggered, this, &AAuraPlayerController::OnSetDestinationTriggered);
+	EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Completed, this, &AAuraPlayerController::OnSetDestinationReleased);
+	EnhancedInputComponent->BindAction(SetDestinationClickAction, ETriggerEvent::Canceled, this, &AAuraPlayerController::OnSetDestinationReleased);
+	/* End of TopDown Template*/
+}
+
+void AAuraPlayerController::OnInputStarted()
+{
+	StopMovement();
+}
+
+void AAuraPlayerController::OnSetDestinationTriggered()
+{
+	// We flag that the input is being pressed
+	FollowTime += GetWorld()->GetDeltaSeconds();
+	
+	// We look for the location in the world where the player has pressed the input
+	FHitResult Hit;
+	bool bHitSuccessful = false;
+	bHitSuccessful = GetHitResultUnderCursor(ECollisionChannel::ECC_Visibility, true, Hit);
+	// If we hit a surface, cache the location
+	if (bHitSuccessful)
+	{
+		CachedDestination = Hit.Location;
+		UE_LOG(LogTemp, Log, TEXT("Curor Location: %s"), *CachedDestination.ToString());
+	}
+
+	// Move towards mouse pointer
+	APawn* ControlledPawn = GetPawn();
+	if (ControlledPawn != nullptr)
+	{
+		FVector WorldDirection = (CachedDestination - ControlledPawn->GetActorLocation()).GetSafeNormal();
+		ControlledPawn->AddMovementInput(WorldDirection, 1.0, false);
+	}
+
 	
 }
+
+void AAuraPlayerController::OnSetDestinationReleased()
+{
+	// If it was a short press
+	if (FollowTime <= ShortPressThreshold)
+	{
+		// Move to where the cursor is pressed. It only works with nav mesh volume
+		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, CachedDestination);
+	}
+
+	FollowTime = 0.f;
+}
+
 
 void AAuraPlayerController::Move(const FInputActionValue& InputActionValue)
 {
