@@ -4,11 +4,80 @@
 #include "Player/AuraPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Interaction/Enemynterface.h"
 
 AAuraPlayerController::AAuraPlayerController()
 {
 	bReplicates = true;
 }
+
+void AAuraPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+
+	CurseTrace();
+}
+
+void AAuraPlayerController::CurseTrace()
+{
+	FHitResult CursorHit;
+	GetHitResultUnderCursor(ECC_Visibility,false, CursorHit);
+	if (!CursorHit.bBlockingHit) return;
+
+	LastActor = ThisActor;
+	ThisActor = Cast<IEnemynterface>(CursorHit.GetActor());
+
+	/**
+	 *Line trace from cursor. There are several scenrios
+	 * A.LastActor is null && ThisACtor is null
+	 * - do nothing
+	 * B.Last Actor is null && ThisActor is valid
+	 *	- this actor is enemy interface so call HighLight thisactor
+	 *	C. LastActor is valid && ThisActor is null
+	 *	 - last frame we had enemy interface so now we want to UnHighlisht LastActor
+	 *	 D. Both Actors are valid, but LastActor != ThisActor
+	 *	  - UnHihglihg LastActor and Highligh this actor (
+	 *	  E. Both Actors are valid and are the same actor
+	 *	   - Do nothing
+	 */
+
+
+	if (LastActor == nullptr)
+	{
+		if (ThisActor != nullptr)
+		{
+			//case B
+			ThisActor->HighlightActor();
+		}
+		else
+		{
+			//case A - both are null,  do nothing
+		}
+	}
+	else //Last Actori is valid
+	{
+		if (ThisActor == nullptr)
+		{
+			//Case C
+			LastActor->UnHighlightActor();
+		}
+		else //both actors are valid
+		{
+			if (LastActor != ThisActor)
+			{
+				//case D
+				LastActor->UnHighlightActor();
+				ThisActor->HighlightActor();
+			}
+			else
+			{
+				//case E - do nothing
+			}
+		}
+		
+	}
+}
+
 
 void AAuraPlayerController::BeginPlay()
 {
@@ -54,3 +123,4 @@ void AAuraPlayerController::Move(const FInputActionValue& InputActionValue)
 	}
 	
 }
+
