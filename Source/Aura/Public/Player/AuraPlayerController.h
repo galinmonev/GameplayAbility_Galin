@@ -60,8 +60,8 @@ private:
 	void Move(const FInputActionValue& InputActionValue);
 
 	void CurseTrace();
-	IEnemynterface* LastActor;
-	IEnemynterface* ThisActor;
+	TObjectPtr<IEnemynterface> LastActor;
+	TObjectPtr<IEnemynterface> ThisActor;
 
 
 	/*This below is taken for TopDown template Player Controller */
